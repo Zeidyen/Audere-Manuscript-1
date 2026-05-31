@@ -1,10 +1,6 @@
 # Clover Field Study — Analysis Repository
 
 **Paper:** AI companion engagement and HIV testing and PrEP initiation among young people in South Africa: a real-world cohort study  
-**Journal target:** *Lancet Digital Health*  
-**Study period:** 17 March – 30 November 2025  
-**Platform:** Aimee, a WhatsApp-based generative AI health companion  
-**Programme:** SHOUT-IT-NOW PEPFAR DREAMS, South Africa  
 
 ---
 
