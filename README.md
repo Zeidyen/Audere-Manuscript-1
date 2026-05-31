@@ -1,6 +1,6 @@
 # Clover Field Study — Analysis Repository
 
-**Paper:** AI companion engagement and HIV testing and PrEP initiation among young people in South Africa: a real-world cohort study  
+**Paper:** AI companion engagement and HIV testing and PrEP initiation among young people in South Africa: a real-world cohort study  I am 
 
 ---
 
@@ -238,12 +238,12 @@ python3 plot_funnel_original.py
 
 ## Data availability
 
-De-identified datasets are not publicly available due to data-use agreements but may be made available to qualified researchers upon reasonable request and with appropriate institutional approvals.
+Please note that datasets are not publicly available due to data-use agreements but may be made available to qualified researchers upon reasonable request and with appropriate institutional approvals together with a non-disclosure. 
 
 ## Ethics
 
-Approved by [ethics committee name], protocol reference [NHREC reference]. Retrospective analysis of de-identified operational data. Informed consent waived.
+Tbd
 
 ## Acknowledgements
 
-HIV self-tests for Source 2 were donated by Wondfo Biotech Co., Ltd as part of the study's community outreach events.
+Tbd
