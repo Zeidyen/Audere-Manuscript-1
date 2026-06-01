@@ -15,8 +15,8 @@ import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/mnt/user-data/uploads"
-OUT_DIR  = "/home/claude/funnel"
+DATA_DIR = "/home/zeid/audere_manuscript_1/data"
+OUT_DIR  = "/home/zeid/audere_manuscript_1"
 
 SAST = "Africa/Johannesburg"
 START = pd.Timestamp("2025-03-17 00:00:00", tz=SAST)
