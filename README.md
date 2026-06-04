@@ -80,10 +80,10 @@ Union of five sources. The verified sources (S1–S2) are restricted to events o
 | Source | Type | Verification |
 |---|---|---|
 | S1: CBO clinic HIV test result | Post-Aimee only | Strong — clinic-verified |
-| S2: Nurse-reviewed self-test upload | All (incl. same-day Wondfo) | Moderate — nurse-reviewed |
-| S3: HIV status disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
-| S4: HIV test date disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
-| S5: Care-linkage HIV-testing date disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
+| S2: Nurse-reviewed self-test upload | All (incl. same-day Wondfo) |
+| S3: HIV status disclosed to Aimee | Post-disclosure timestamp |
+| S4: HIV test date disclosed to Aimee | Post-disclosure timestamp |
+| S5: Care-linkage HIV-testing date disclosed to Aimee | Post-disclosure timestamp |
 
 Primary union: **3,493 (37·5%)**  
 Conservative secondary (S1+S2 only): **1,714 (18·4%)**
