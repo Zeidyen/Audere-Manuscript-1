@@ -37,8 +37,7 @@ All outcomes are anchored at the analytic cohort (n=9,310). Same-day events — 
 │   ├── section3_analysis.py        — HIV testing & PrEP cascade; time-to-event (Section 3)
 │   ├── section4_analysis.py        — HCW engagement & triage analysis (Section 4)
 │   ├── section5_analysis.py        — Longitudinal risk change (Section 5 / Supplementary)
-│   ├── sensitivity_analysis.py     — Complete-case sensitivity vs main analysis
-│   └── plot_funnel_original.py     — Engagement funnel figure
+│   └── sensitivity_analysis.py     — Complete-case sensitivity vs main analysis
 │
 ├── Generated figures (PNG)
 │   ├── figure_4_cascade.png             — Care linkage cascade
