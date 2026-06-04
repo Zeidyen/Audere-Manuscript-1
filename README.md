@@ -1,14 +1,16 @@
 # Clover Field Study — Analysis Repository
 
-**Paper:** AI companion engagement and HIV testing and PrEP initiation among young people in South Africa: a real-world cohort study  I am 
+**Paper:** AI companion engagement and HIV testing and PrEP initiation among young people in South Africa: a real-world cohort study
 
 ---
 
 ## Overview
 
-This repository contains all analysis scripts, figure generators, and document builders for the Clover Field Study manuscript. The study evaluated engagement with the Aimee AI health companion and its association with HIV testing and PrEP uptake among 9,310 platform users (analytic cohort: T&C-accepted users who sent at least one message during the study window).
+This repository contains the analysis scripts and generated outputs (figures, supplementary tables, summary JSON) for the Clover Field Study manuscript. The study evaluated engagement with the Aimee AI health companion and its association with HIV testing and PrEP uptake among platform users (analytic cohort: T&C-accepted users who sent at least one message during the study window).
 
-All analyses are in Python 3. Document builders use Node.js (docx library). Scripts are locally runnable with no cloud dependencies.
+All analyses are in Python 3 and are locally runnable with no cloud dependencies. The de-identified source CSVs are **not** committed (see [Data](#data)).
+
+**Study window:** 17 March – 30 November 2025 (SAST, UTC+2).
 
 ---
 
@@ -28,62 +30,46 @@ All outcomes are anchored at the analytic cohort (n=9,310). Same-day events — 
 ## Repository structure
 
 ```
-├── Data sources (CSV, not committed — see Data section below)
-│   ├── ficus_messages_clover_fieldstudy_updated.csv
-│   ├── ficus_patient_state_clover_fieldstudy_updated.csv
-│   ├── ficus_conversations_clover_fieldstudy_updated.csv
-│   ├── ficus_hcw_conversations_clover_fieldstudy_updated.csv
-│   ├── ficus_patient_tasks_clover_fieldstudy_updated.csv
-│   ├── ficus_patient_profiles_clover_fieldstudy_updated.csv
-│   ├── ficus_risk_assessments_clover_fieldstudy_updated.csv
-│   ├── ficus_self_tests_clover_fieldstudy_updated.csv
-│   └── ficus_patient_aggregation_clover_fieldstudy_updated.csv
-│
 ├── Analysis scripts (Python)
-│   ├── section3_analysis.py        — HIV testing and PrEP cascade (Section 3)
-│   ├── section4_analysis.py        — HCW engagement and triage analysis (Section 4)
-│   ├── section5_analysis.py        — Longitudinal risk change (Section 5 / Supplementary)
-│   ├── engagement_intensity.py     — Span vs intensity, threshold analysis (Section 2)
-│   ├── sensitivity_analysis.py     — IPW propensity score and E-value
+│   ├── baseline_characteristics.py — Supplementary Table 1 (cohort baseline)
+│   ├── engagement_intensity.py     — Span vs intensity; push-notification analysis (Section 2)
 │   ├── threshold_analysis.py       — Dose-response across active-day thresholds
-│   ├── baseline_characteristics.py — Supplementary Table 1
+│   ├── section3_analysis.py        — HIV testing & PrEP cascade; time-to-event (Section 3)
+│   ├── section4_analysis.py        — HCW engagement & triage analysis (Section 4)
+│   ├── section5_analysis.py        — Longitudinal risk change (Section 5 / Supplementary)
+│   ├── sensitivity_analysis.py     — Complete-case sensitivity vs main analysis
 │   └── plot_funnel_original.py     — Engagement funnel figure
 │
-├── JSON outputs (intermediate results)
+├── Generated figures (PNG)
+│   ├── figure_4_cascade.png             — Care linkage cascade
+│   ├── figure_5a_km_hiv.png             — KM curve — HIV testing
+│   ├── figure_5b_km_prep.png            — KM curve — PrEP uptake
+│   ├── figure_6a_nurse_contact.png      — HCW contact groups
+│   ├── figure_6b_uptake_by_flag.png     — Uptake by Aimee flag type
+│   ├── figure_7a_prep_by_risk_change.png— PrEP by risk transition
+│   ├── figure_7b_risk_reduction_by_nurse.png — Risk reduction by nurse contact
+│   ├── figure_7c_transition_sankey.png  — Risk transition Sankey
+│   └── supp_figure_1_risk.png           — Supplementary risk figure
+│
+├── Generated tables (CSV)
+│   ├── baseline_characteristics.csv     — written by baseline_characteristics.py
+│   ├── supplementary_table_2.csv        — engagement–outcome AORs (main)
+│   ├── supplementary_table_2b.csv       — complete-case sensitivity AORs
+│   ├── supplementary_table_3.csv
+│   ├── supplementary_table_4.csv
+│   ├── supplementary_table_4_overall.csv
+│   └── supplementary_table_5.csv
+│
+├── Summary outputs (JSON)
 │   ├── section3_summary.json
 │   ├── section4_summary.json
-│   ├── section5_summary.json
-│   ├── span_intensity_results.json
-│   ├── propensity_results.json
-│   ├── evalue_results.json
-│   └── baseline_corrections.json
+│   ├── section4_sensitivity.json
+│   └── section5_summary.json
 │
-├── Figures (PNG)
-│   ├── engagement_funnel_plot.png  — Figure 1: Engagement funnel
-│   ├── figure_2_forest_plot.png    — Figure 2: Threshold dose-response
-│   ├── figure_3a_span_groups.png   — Figure 3A: Span categories
-│   ├── figure_3b_three_convs.png   — Figure 3B: Span vs intensity (3-session)
-│   ├── figure_3c_dose_response.png — Figure 3C: Active-day dose-response
-│   ├── figure_4_cascade.png        — Figure 4: Care linkage cascade
-│   ├── figure_5a_km_hiv.png        — Figure 5A: KM curve — HIV testing
-│   ├── figure_5b_km_prep.png       — Figure 5B: KM curve — PrEP uptake
-│   ├── figure_6a_nurse_contact.png — Figure 6A: HCW contact groups
-│   ├── figure_6b_uptake_by_flag.png— Figure 6B: Uptake by Aimee flag type
-│   ├── figure_7a_prep_by_risk.png  — Figure 7A: PrEP by risk transition
-│   ├── figure_7b_risk_reduction.png— Figure 7B: Risk reduction by nurse contact
-│   └── figure_7c_transition_sankey.png — Figure 7C: Risk transition Sankey
-│
-└── Document builders (Node.js)
-    ├── build_results_docx.js       — Section 1 (cohort and engagement)
-    ├── build_engagement_intensity_docx.js — Section 2
-    ├── build_section3_v2.js        — Section 3
-    ├── build_section4_docx.js      — Section 4
-    ├── build_section5_docx.js      — Section 5
-    ├── build_methods_v2.js         — Methods
-    ├── build_discussion_v3.js      — Discussion
-    ├── build_limitations_v2.js     — Limitations
-    └── build_baseline_docx.js      — Baseline characteristics table
+└── Aimee Engagement Analysis .ipynb     — exploratory notebook
 ```
+
+> Source data CSVs (`ficus_*` and `clover_*` tables) are required to regenerate any output but are not committed — see [Data](#data).
 
 ---
 
@@ -145,8 +131,7 @@ Selected as the first and largest inflection point in the dose-response curve.
 | Span vs intensity mutual adjustment | Log-transformed continuous variables (log1p), restricted to ≥2-day users | `engagement_intensity.py` |
 | Threshold dose-response | AORs at ≥2 through ≥14 active-day thresholds | `threshold_analysis.py` |
 | Time-to-event | Kaplan–Meier + Cox regression (verified outcomes only) | `section3_analysis.py` |
-| Propensity-score sensitivity | IPW with post-baseline proxies; stabilised weights trimmed 1st–99th pct | `sensitivity_analysis.py` |
-| E-value | VanderWeele & Ding (2017) formula; OR→RR conversion applied | `sensitivity_analysis.py` |
+| Complete-case sensitivity | Re-fit on age/sex-disclosed subset; compared against main analysis | `sensitivity_analysis.py` |
 | HCW group comparisons | Logistic regression, three-group classification | `section4_analysis.py` |
 | Phithos ordinal trend | Ordinal logistic, risk coded 0/1/2 | `section3_analysis.py` |
 | Longitudinal risk | Logistic regression, ≥7-day separation, adjusted for baseline risk + month | `section5_analysis.py` |
@@ -168,8 +153,6 @@ All analyses in Python 3 using pandas, numpy, statsmodels, lifelines, scipy, mat
 | Two-way nurse contact AOR (HIV testing) | 9·55 (8·51–10·71) |
 | Two-way nurse contact AOR (PrEP uptake) | 3·97 (3·42–4·60) |
 | PrEP p-trend across Phithos risk categories | 0·979 (non-significant) |
-| IPW-adjusted PrEP AOR | 2·61 (2·22–3·37) |
-| E-value PrEP CI lower bound | 3·6 |
 
 ---
 
@@ -179,40 +162,55 @@ All analyses in Python 3 using pandas, numpy, statsmodels, lifelines, scipy, mat
 ```
 Python 3.9+
 pandas, numpy, statsmodels, lifelines, scipy, matplotlib
-Node.js 18+ (for document builders only)
 ```
 
 ### Installation
 ```bash
 pip install pandas numpy statsmodels lifelines scipy matplotlib
-cd /path/to/repo && npm install
 ```
 
 ### Data
-De-identified CSV exports from the South Africa Prod PostgreSQL database (ficus_ and clover_ prefixed tables) are required. These are not publicly available due to data-use agreements. Qualified researchers may request access from the corresponding author with appropriate institutional approvals.
+De-identified CSV exports from the South Africa Prod PostgreSQL database (`ficus_`- and `clover_`-prefixed tables) are required. These are **not** publicly available due to data-use agreements. Qualified researchers may request access from the corresponding author with appropriate institutional approvals.
 
-Place all CSV files in the same directory as the analysis scripts, or update the `UP` path variable at the top of each script.
+Each script reads its inputs from `AUDERE_DATA_DIR` and writes outputs to `AUDERE_OUT_DIR`:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `AUDERE_DATA_DIR` | `./data` (a `data/` folder beside the scripts) | location of the source CSVs |
+| `AUDERE_OUT_DIR`  | the script's own directory | where figures/tables/JSON are written |
+
+So either drop the CSVs into a `data/` folder next to the scripts, or point the env vars at wherever they live:
+
+```bash
+export AUDERE_DATA_DIR=/path/to/csvs
+export AUDERE_OUT_DIR=/path/to/output     # optional; defaults to repo dir
+```
 
 ### Running analyses
 ```bash
-# Section 3 — HIV testing and PrEP cascade + figures
+# Supplementary Table 1 — baseline characteristics
+python3 baseline_characteristics.py
+
+# Section 2 — engagement intensity + push-notification analysis
+python3 engagement_intensity.py
+
+# Active-day threshold dose-response
+python3 threshold_analysis.py
+
+# Section 3 — HIV testing & PrEP cascade + figures
 python3 section3_analysis.py
 
 # Section 4 — HCW engagement
 python3 section4_analysis.py
 
-# Section 5 — Longitudinal risk (supplementary)
+# Section 5 — longitudinal risk (supplementary)
 python3 section5_analysis.py
 
-# Section 2 — Engagement intensity
-python3 engagement_intensity.py
-
-# Sensitivity analysis (IPW + E-value)
+# Complete-case sensitivity (reads supplementary_table_2.csv from section3)
 python3 sensitivity_analysis.py
-
-# Engagement funnel figure
-python3 plot_funnel_original.py
 ```
+
+> `sensitivity_analysis.py` compares against `supplementary_table_2.csv`, so run `section3_analysis.py` first.
 
 ---
 
@@ -222,13 +220,11 @@ python3 plot_funnel_original.py
 
 2. **Push notifications drive re-engagement.** 84·6% of return messages followed a platform push notification within 48 hours. Engagement span partly reflects the platform's own nudging infrastructure, not solely intrinsic health-seeking motivation.
 
-3. **IPW post-baseline limitation.** All three propensity-score proxies were measured during the same window as the exposure. IPW estimates should be interpreted as bounding analyses rather than unbiased causal estimates.
+3. **S3/S4 contamination.** Self-disclosed sources may incorporate test events that pre-dated Aimee engagement. Disclosure timestamps record when patients told Aimee, not when the test occurred.
 
-4. **S3/S4 contamination.** Self-disclosed sources may incorporate test events that pre-dated Aimee engagement. Disclosure timestamps record when patients told Aimee, not when the test occurred.
+4. **Phithos is not a validated clinical instrument.** The low/medium/high classification is generated by a proprietary platform algorithm. It functions as a proxy for disclosure depth as much as objective HIV risk.
 
-5. **Phithos is not a validated clinical instrument.** The low/medium/high classification is generated by a proprietary platform algorithm. It functions as a proxy for disclosure depth as much as objective HIV risk.
-
-6. **Generalisability.** Findings reflect Aimee operating within a well-resourced PEPFAR DREAMS outreach infrastructure with co-located nursing capacity. Results may not generalise to settings without this support.
+5. **Generalisability.** Findings reflect Aimee operating within a well-resourced PEPFAR DREAMS outreach infrastructure with co-located nursing capacity. Results may not generalise to settings without this support.
 
 ---
 
@@ -238,12 +234,16 @@ python3 plot_funnel_original.py
 
 ## Data availability
 
-Please note that datasets are not publicly available due to data-use agreements but may be made available to qualified researchers upon reasonable request and with appropriate institutional approvals together with a non-disclosure. 
+Datasets are not publicly available due to data-use agreements but may be made available to qualified researchers upon reasonable request, with appropriate institutional approvals and a non-disclosure agreement.
 
 ## Ethics
 
-Tbd
+_To be added._
 
 ## Acknowledgements
 
-Tbd
+_To be added._
+
+## License
+
+_To be added._
