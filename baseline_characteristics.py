@@ -10,290 +10,279 @@ Three cohorts:
 """
 
 import os
+import json
 import pandas as pd
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/home/zeid/audere_manuscript_1/data"
-OUT_DIR  = "/home/zeid/audere_manuscript_1"
+_HERE    = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.environ.get("AUDERE_DATA_DIR", os.path.join(_HERE, "data"))
+OUT_DIR  = os.environ.get("AUDERE_OUT_DIR", _HERE)
 
 SAST = "Africa/Johannesburg"
 START = pd.Timestamp("2025-03-17 00:00:00", tz=SAST)
 END   = pd.Timestamp("2025-11-30 23:59:59", tz=SAST)
-
+ 
 def path(name): return os.path.join(DATA_DIR, name)
 def to_sast(s): return pd.to_datetime(s, errors="coerce", utc=True).dt.tz_convert(SAST)
-
-print("Loading (UTC → SAST)...")
-
+ 
+# ─── Load ────────────────────────────────────────────────────────────────────
+print("Loading...")
 pat = pd.read_csv(path("ficus_patients_clover_fieldstudy_updated.csv"), low_memory=False)
 pat = pat[pat["is_test_data"] == False]
-
-prof = pd.read_csv(path("ficus_patient_profiles_clover_fieldstudy_updated.csv"), low_memory=False)
+ 
+prof = pd.read_csv(path("ficus_patient_profiles_clover_fieldstudy_updated.csv"),
+                   usecols=["patient_id","is_test_data","extracted_data",
+                            "extracted_data → biological_sex → value"],
+                   low_memory=False)
 prof = prof[prof["is_test_data"] == False]
-
+prof_json = prof[prof["extracted_data"].notna()].copy()
+ 
 agg = pd.read_csv(path("ficus_patient_aggregation_clover_fieldstudy_updated.csv"), low_memory=False)
 agg = agg[agg["is_test_data"] == False]
-
+ 
 conv = pd.read_csv(path("ficus_conversations_clover_fieldstudy_updated.csv"), low_memory=False)
 conv = conv[conv["is_test_data"] == False]
-conv["first_ts"] = to_sast(conv["first_recorded_message_timestamp"])
-
+ 
 llm = pd.read_csv(path("ficus_llm_conversations_clover_fieldstudy_updated.csv"), low_memory=False)
 llm = llm[llm["is_test_data"] == False]
 llm["first_ts"] = to_sast(llm["first_recorded_message_timestamp"])
 llm_in = llm[(llm["first_ts"] >= START) & (llm["first_ts"] <= END)]
-
+ 
 msgs = pd.read_csv(path("ficus_messages_clover_fieldstudy_updated.csv"),
-                   usecols=["sent_timestamp","role","is_test_data",
-                            "api_owner","conversation_id"],
+                   usecols=["sent_timestamp","role","is_test_data","api_owner","conversation_id"],
                    low_memory=False)
-msgs = msgs[msgs["is_test_data"] == False]
-msgs = msgs.rename(columns={"api_owner":"patient_id"})
+msgs = msgs[msgs["is_test_data"] == False].rename(columns={"api_owner":"patient_id"})
 msgs["sent_ts"] = to_sast(msgs["sent_timestamp"])
 msgs = msgs[(msgs["sent_ts"] >= START) & (msgs["sent_ts"] <= END)]
-ct_map = dict(zip(conv["conversation_id"], conv["conversation_type"]))
-msgs["conv_type"] = msgs["conversation_id"].map(ct_map)
 msgs["date"] = msgs["sent_ts"].dt.date
 msgs["hour"] = msgs["sent_ts"].dt.hour
-
+ 
 risk = pd.read_csv(path("ficus_risk_assessments_clover_fieldstudy_updated.csv"), low_memory=False)
 risk = risk[risk["is_test_data"] == False]
 risk["ts"] = to_sast(risk["assessment_timestamp"])
-
-# ─── Cohorts ────────────────────────────────────────────────────────────────
-user_msgs = msgs[msgs["role"] == "user"]
-
-# All platform users who sent ≥1 message (funnel denominator = 9,958)
-sent_pids = set(user_msgs["patient_id"].dropna().unique())
-
-# Analytic cohort = T&C accepted ∩ sent message (n=9,310)
+ 
 pstate = pd.read_csv(path("ficus_patient_state_clover_fieldstudy_updated.csv"), low_memory=False)
 pstate = pstate[pstate["is_test_data"] == False]
-tc_pids = set(pstate[pstate["first_terms_accepted_timestamp"].notna()]["patient_id"].dropna().unique())
-all_pids = sent_pids & tc_pids  # analytic cohort — 9,310
-
-# Meaningful engagers: ≥2 active days, any user message, within analytic cohort (broad, n=5,452)
-days_per_pid = user_msgs.groupby("patient_id")["date"].nunique()
-engagers_pids = set(days_per_pid[days_per_pid >= 2].index) & all_pids
-
-scored_records = risk[(risk["ts"]>=START)&(risk["ts"]<=END)&(risk["risk_score_classification"].isin(["low","medium","high"]))]
-scored_pids = set(scored_records["patient_id"].dropna().unique()) & all_pids
-
-print(f"\nCohort sizes (analytic cohort = T&C accepted, n=9,310):")
-print(f"  Analytic cohort:     {len(all_pids):,}")
-print(f"  Meaningful engagers: {len(engagers_pids):,}  ({len(engagers_pids)/len(all_pids)*100:.1f}%)")
-print(f"  Scored subgroup:     {len(scored_pids):,}  ({len(scored_pids)/len(all_pids)*100:.1f}%)")
-
-# ─── Master patient frame ───────────────────────────────────────────────────
-master = pd.DataFrame({"patient_id": sorted(all_pids | scored_pids)})
-
-# Age — explicit (non-assumed) from risk_assessments, latest per patient
+pstate["tc_ts"] = to_sast(pstate["first_terms_accepted_timestamp"])
+ 
+# ─── Cohorts ────────────────────────────────────────────────────────────────
+user_all = msgs[msgs["role"] == "user"]
+all_pids = set(user_all["patient_id"].dropna().unique())
+ 
+# Meaningful engagers: ≥2 distinct days with any user message
+days_per_pid = user_all.groupby("patient_id")["date"].nunique()
+engagers_pids = set(days_per_pid[days_per_pid >= 2].index)
+ 
+# Scored subgroup
+scored_records = risk[risk["risk_score_classification"].isin(["low","medium","high"])]
+scored_pids = set(scored_records["patient_id"].dropna().unique())
+ 
+print(f"  All platform users:  {len(all_pids):,}")
+print(f"  Meaningful engagers: {len(engagers_pids):,}")
+print(f"  Scored subgroup:     {len(scored_pids):,}")
+ 
+def grab_value(json_str, key):
+    try: return json.loads(json_str).get(key, {}).get("value")
+    except: return None
+ 
+for field in ["takes_prep","hiv_status","condom_usage_frequency","last_hiv_test","num_sexual_partners"]:
+    prof_json[field] = prof_json["extracted_data"].apply(lambda s, k=field: grab_value(s, k))
+ 
 ra = risk.copy()
 ra["age_str"] = ra["llm_extracted_data_age"].astype(str)
 ra_real = ra[~ra["age_str"].str.contains("assumed", case=False, na=False)]
 ra_real["age_num"] = pd.to_numeric(ra_real["age_str"], errors="coerce")
 ra_real = ra_real[(ra_real["age_num"] >= 13) & (ra_real["age_num"] <= 80)]
-latest_age = (ra_real.sort_values("ts").groupby("patient_id").tail(1)[["patient_id","age_num"]])
+latest_age = ra_real.sort_values("ts").groupby("patient_id").tail(1)[["patient_id","age_num"]]
+ 
+master = pd.DataFrame({"patient_id": sorted(all_pids | scored_pids)})
 master = master.merge(latest_age, on="patient_id", how="left")
-
-# Sex from patient_profiles (explicit only)
-prof_sex = prof[["patient_id","extracted_data → biological_sex → value"]].rename(
+ 
+sex_df = prof[["patient_id","extracted_data → biological_sex → value"]].rename(
     columns={"extracted_data → biological_sex → value":"sex_raw"})
-prof_sex = prof_sex[prof_sex["sex_raw"].isin(["female","male","other"])]
-master = master.merge(prof_sex, on="patient_id", how="left")
-
-# First-message month (SAST)
-first_msg = user_msgs.groupby("patient_id")["sent_ts"].min().reset_index()
-first_msg["reg_month"] = first_msg["sent_ts"].dt.month_name()
-master = master.merge(first_msg[["patient_id","reg_month"]], on="patient_id", how="left")
-
-# Active days, user msg count, AI conv count, span, after-hours %
-active_days = user_msgs.groupby("patient_id")["date"].nunique().rename("active_days")
+sex_df = sex_df[sex_df["sex_raw"].isin(["female","male","other"])]
+master = master.merge(sex_df, on="patient_id", how="left")
+ 
+tc_in = pstate[(pstate["tc_ts"] >= START) & (pstate["tc_ts"] <= END)].copy()
+tc_in["reg_month"] = tc_in["tc_ts"].dt.month_name()
+master = master.merge(tc_in[["patient_id","reg_month"]], on="patient_id", how="left")
+ 
+active_days = user_all.groupby("patient_id")["date"].nunique().rename("active_days")
 master = master.merge(active_days.reset_index(), on="patient_id", how="left")
-
-um_count = user_msgs[user_msgs["conv_type"].isin(["pre-assessment","static","ifu"])].groupby("patient_id").size().rename("user_msgs")
-master = master.merge(um_count.reset_index(), on="patient_id", how="left")
-
+ 
+total_msgs = user_all.groupby("patient_id").size().rename("total_msgs")
+master = master.merge(total_msgs.reset_index(), on="patient_id", how="left")
+ 
 ai_count = llm_in.groupby("patient_id").size().rename("ai_convs")
 master = master.merge(ai_count.reset_index(), on="patient_id", how="left")
-
-t0 = user_msgs.groupby("patient_id")["sent_ts"].min()
-t1 = user_msgs.groupby("patient_id")["sent_ts"].max()
+master["ai_convs"] = master["ai_convs"].fillna(0).astype(int)
+ 
+# Span
+t0 = user_all.groupby("patient_id")["sent_ts"].min()
+t1 = user_all.groupby("patient_id")["sent_ts"].max()
 span = ((t1 - t0).dt.total_seconds() / 86400.0).rename("span_days")
 master = master.merge(span.reset_index(), on="patient_id", how="left")
-
-user_msgs["after_hours"] = (user_msgs["hour"] < 8) | (user_msgs["hour"] >= 17)
-ah = (user_msgs.groupby("patient_id")["after_hours"].mean().rename("after_hours_pct") * 100)
-master = master.merge(ah.reset_index(), on="patient_id", how="left")
-
-# Risk score — latest scored per patient
-scored_only = risk[risk["risk_score"].notna()].sort_values("ts").groupby("patient_id").tail(1)
-master = master.merge(scored_only[["patient_id","risk_score","risk_score_classification"]],
+ 
+# After-hours %
+user_all_copy = user_all.copy()
+user_all_copy["after_hours"] = (user_all_copy["hour"] < 8) | (user_all_copy["hour"] >= 17)
+ah_pct = (user_all_copy.groupby("patient_id")["after_hours"].mean() * 100).rename("after_hours_pct")
+master = master.merge(ah_pct.reset_index(), on="patient_id", how="left")
+ 
+# Risk score (latest scored per patient — SAST-windowed for classification breakdown)
+risk_window = risk[(risk["ts"] >= START) & (risk["ts"] <= END)]
+scored_only_window = risk_window[risk_window["risk_score"].notna()].sort_values("ts").groupby("patient_id").tail(1)
+master = master.merge(scored_only_window[["patient_id","risk_score","risk_score_classification"]],
                       on="patient_id", how="left")
-
-# Behavioural — latest per patient from risk
-def latest_field(col, new_name):
-    sub = risk[risk[col].notna()].sort_values("ts").groupby("patient_id").tail(1)
-    return sub[["patient_id", col]].rename(columns={col: new_name})
-
-master = master.merge(latest_field("llm_extracted_data_condom_usage_frequency","condom"), on="patient_id", how="left")
-master = master.merge(latest_field("llm_extracted_data_last_hiv_test","last_hiv_test"), on="patient_id", how="left")
-master = master.merge(latest_field("llm_extracted_data_num_sexual_partners","n_partners"), on="patient_id", how="left")
-master["n_partners_num"] = pd.to_numeric(master["n_partners"], errors="coerce")
-
-# PrEP and HIV-positive flags from patient_profiles.extracted_data (JSON rollup)
-print("Parsing patient_profiles JSON for PrEP / HIV status flags...")
-import json as _json
-prof_full = pd.read_csv(path("ficus_patient_profiles_clover_fieldstudy_updated.csv"),
-                        usecols=["patient_id","is_test_data","extracted_data"],
-                        low_memory=False)
-prof_full = prof_full[(prof_full["is_test_data"] == False) & prof_full["extracted_data"].notna()]
-
-def get_prep(s):
-    try:    return _json.loads(s).get("takes_prep", {}).get("value") is True
-    except: return False
-def get_hiv_pos(s):
-    try:
-        d = _json.loads(s)
-        st = d.get("hiv_status", {}).get("value")
-        return str(st).lower() == "positive" if st is not None else False
-    except: return False
-
-prof_full["on_prep"] = prof_full["extracted_data"].apply(get_prep)
-prof_full["hiv_pos"] = prof_full["extracted_data"].apply(get_hiv_pos)
-prep_pids    = set(prof_full.loc[prof_full["on_prep"], "patient_id"].unique())
-hiv_pos_pids = set(prof_full.loc[prof_full["hiv_pos"], "patient_id"].unique())
-
-master["on_prep"] = master["patient_id"].isin(prep_pids)
+ 
+# PrEP — patients who DISCLOSED takes_prep (True OR False)  → target 859
+prep_disclosed_pids = set(prof_json.loc[prof_json["takes_prep"].notna(), "patient_id"].unique())
+master["on_prep"] = master["patient_id"].isin(prep_disclosed_pids)
+ 
+# HIV positive (hiv_status == 'positive')
+hiv_pos_pids = set(prof_json.loc[prof_json["hiv_status"].astype(str).str.lower() == "positive",
+                                  "patient_id"].unique())
 master["hiv_pos"] = master["patient_id"].isin(hiv_pos_pids)
-
+ 
+# Behavioural — from patient_profiles JSON
+master = master.merge(prof_json[["patient_id","condom_usage_frequency","last_hiv_test","num_sexual_partners"]],
+                      on="patient_id", how="left")
+master["n_partners_num"] = pd.to_numeric(master["num_sexual_partners"], errors="coerce")
+ 
+# Cohort flags
 master["c_all"] = master["patient_id"].isin(all_pids)
 master["c_eng"] = master["patient_id"].isin(engagers_pids)
 master["c_scr"] = master["patient_id"].isin(scored_pids)
-
-# Map categorical fields
+ 
+# Condom and HIV-test bands
 def map_condom(v):
     if pd.isna(v): return None
-    v = str(v).lower().strip()
-    if "never" in v: return "Never"
-    if "sometimes" in v or "occasion" in v: return "Sometimes"
-    if "always" in v: return "Always"
-    if "not sexually active" in v or "no sex" in v or "not_sex" in v: return "Not sexually active"
+    s = str(v).lower().strip()
+    if s == "never": return "Never"
+    if s == "sometimes": return "Sometimes"
+    if s == "always": return "Always"
+    if s == "not sexually active" or s == "not_sexually_active": return "Not sexually active"
     return None
-
-def map_hiv_test(v):
+ 
+def map_hiv(v):
     if pd.isna(v): return None
     s = str(v).lower().strip()
-    if s == "0_3_months":         return "Within 3 months"
-    if s == "3_6_months":         return "3 to 6 months"
-    if s == "6_12_months":        return "6 to 12 months"
-    if s == "more_than_12_months":return "More than 12 months"
-    if s == "never":              return "Never tested"
-    return None  # 'clientUnknown' and anything else
-
-master["condom_band"] = master["condom"].apply(map_condom)
-master["hiv_test_band"] = master["last_hiv_test"].apply(map_hiv_test)
-
-# ─── Build table ────────────────────────────────────────────────────────────
-COHORT_LABELS = {
-    "All":      f"Analytic cohort\n(n = {len(all_pids):,})",
-    "Engagers": f"Meaningful engagers†\n(n = {len(engagers_pids):,})",
-    "Scored":   f"Scored subgroup‡\n(n = {len(scored_pids):,})",
-}
+    return {"0_3_months":"Within 3 months",
+            "3_6_months":"3 to 6 months",
+            "6_12_months":"6 to 12 months",
+            "more_than_12_months":"More than 12 months",
+            "never":"Never tested"}.get(s)
+ 
+master["condom_band"]   = master["condom_usage_frequency"].apply(map_condom)
+master["hiv_test_band"] = master["last_hiv_test"].apply(map_hiv)
+ 
+# ─── Build table ───────────────────────────────────────────────────────────
 ORDER = ["All","Engagers","Scored"]
-
+COHORT_LABELS = {
+    "All":      f"All platform users\n(n = {len(all_pids):,})",
+    "Engagers": f"Meaningful engagers\n(n = {len(engagers_pids):,})",
+    "Scored":   f"Scored subgroup\n(n = {len(scored_pids):,})",
+}
 def get_cohort(name):
     if name == "All":      return master[master["c_all"]]
     if name == "Engagers": return master[master["c_eng"]]
     if name == "Scored":   return master[master["c_scr"]]
-
-def med_iqr(series, dec=0):
-    s = series.dropna()
+ 
+def med_iqr(s, dec=0):
+    s = s.dropna()
     if len(s) == 0: return "—", 0
-    q1, med, q3 = s.quantile([0.25, 0.50, 0.75])
+    q1, med, q3 = s.quantile([0.25, 0.5, 0.75])
     return f"{med:.{dec}f} ({q1:.{dec}f}–{q3:.{dec}f})", len(s)
-
+ 
 def n_pct(n, d):
     if d == 0: return "—"
     return f"{n:,} ({n/d*100:.1f}%)"
-
+ 
+def med_pct(s, dec=0):
+    s = s.dropna()
+    if len(s) == 0: return "—"
+    q1, med, q3 = s.quantile([0.25, 0.5, 0.75])
+    return f"{med:.{dec}f}% ({q1:.{dec}f}–{q3:.{dec}f}%)"
+ 
 rows = []
 def add_section(t): rows.append({"kind":"section","label":t})
 def add_row(label, vals):
     rows.append({"kind":"row","label":label,
                  "All":vals.get("All",""), "Engagers":vals.get("Engagers",""), "Scored":vals.get("Scored","")})
-
+ 
 # Demographics
 add_section("Demographics")
-age_vals = {}
+v = {}
 for c in ORDER:
     coh = get_cohort(c)
-    med, n_d = med_iqr(coh["age_num"])
-    age_vals[c] = f"{med}\n[n={n_d:,}, {n_d/len(coh)*100:.1f}%]" if len(coh) else "—"
-add_row("Age — median (IQR), years", age_vals)
-
-sex_vals = {}
+    m, n = med_iqr(coh["age_num"])
+    v[c] = f"{m}\n[n={n:,}, {n/len(coh)*100:.1f}%]" if len(coh) else "—"
+add_row("Age — median (IQR), years", v)
+ 
+v = {}
 for c in ORDER:
     coh = get_cohort(c)
     disc = coh[coh["sex_raw"].isin(["female","male","other"])]
     fem = (disc["sex_raw"] == "female").sum()
-    sex_vals[c] = f"{fem:,} ({fem/len(disc)*100:.1f}%)\nof {len(disc):,}" if len(disc) else "—"
-add_row("Female sex — n (%)", sex_vals)
-
+    v[c] = f"{fem:,} ({fem/len(disc)*100:.1f}%)\nof {len(disc):,}" if len(disc) else "—"
+add_row("Female sex — n (%)", v)
+ 
 # Registration month
-add_section("Registration month")
+add_section("Registration month — n (%)")
 for m in ["March","April","May","June","July","August","September","October","November"]:
     v = {}
     for c in ORDER:
         coh = get_cohort(c)
         v[c] = n_pct((coh["reg_month"] == m).sum(), len(coh))
     add_row(m, v)
-
+ 
 # Engagement profile
 add_section("Engagement profile")
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["active_days"]); v[c] = med
+    coh = get_cohort(c); m, _ = med_iqr(coh["active_days"]); v[c] = m
 add_row("Distinct active days — median (IQR)", v)
-
-for band, lo, hi in [("1 active day",1,1), ("2-3 active days",2,3), ("4+ active days",4,None)]:
+ 
+for label, lo, hi in [("1 active day", 1, 1), ("2–3 active days", 2, 3), ("4+ active days", 4, None)]:
     v = {}
     for c in ORDER:
         coh = get_cohort(c)
         ad = coh["active_days"].fillna(0)
         n = ((ad >= lo) & (ad <= hi)).sum() if hi else (ad >= lo).sum()
-        v[c] = n_pct(n, len(coh))
-    add_row(band, v)
-
+        # For engagers, 1-active-day is non-applicable
+        if c == "Engagers" and lo == 1 and hi == 1:
+            v[c] = "—"
+        else:
+            v[c] = n_pct(n, len(coh))
+    add_row(label, v)
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["user_msgs"]); v[c] = med
-add_row("User messages — median (IQR)", v)
-
+    coh = get_cohort(c); m, _ = med_iqr(coh["total_msgs"]); v[c] = m
+add_row("Total messages — median (IQR)", v)
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["ai_convs"]); v[c] = med
+    coh = get_cohort(c); m, _ = med_iqr(coh["ai_convs"]); v[c] = m
 add_row("AI conversations — median (IQR)", v)
-
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c)
-    n = (coh["ai_convs"].fillna(0) >= 2).sum()
-    v[c] = n_pct(n, len(coh))
+    coh = get_cohort(c); n = (coh["ai_convs"] >= 2).sum(); v[c] = n_pct(n, len(coh))
 add_row("2+ AI conversation sessions", v)
-
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["span_days"]); v[c] = med
+    coh = get_cohort(c); m, _ = med_iqr(coh["span_days"]); v[c] = m
 add_row("Engagement span — median days (IQR)", v)
-
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["after_hours_pct"], dec=1); v[c] = med
-add_row("After-hours messages — median % (IQR)", v)
-
+    coh = get_cohort(c); v[c] = med_pct(coh["after_hours_pct"])
+add_row("After-hours messages — median %", v)
+ 
 # Behavioural
 add_section("Behavioural profile")
 denoms_c = {}
@@ -307,11 +296,10 @@ add_row("Condom use frequency — n (%) with data", v)
 for cat in ["Never","Sometimes","Always","Not sexually active"]:
     v = {}
     for c in ORDER:
-        coh = get_cohort(c)
-        n = (coh["condom_band"] == cat).sum()
+        coh = get_cohort(c); n = (coh["condom_band"] == cat).sum()
         v[c] = n_pct(n, denoms_c[c]) if denoms_c[c] else "—"
     add_row(f"  {cat}", v)
-
+ 
 denoms_h = {}
 v = {}
 for c in ORDER:
@@ -323,40 +311,42 @@ add_row("Last HIV test recency — n (%) with data", v)
 for cat in ["Within 3 months","3 to 6 months","6 to 12 months","More than 12 months","Never tested"]:
     v = {}
     for c in ORDER:
-        coh = get_cohort(c)
-        n = (coh["hiv_test_band"] == cat).sum()
+        coh = get_cohort(c); n = (coh["hiv_test_band"] == cat).sum()
         v[c] = n_pct(n, denoms_h[c]) if denoms_h[c] else "—"
     add_row(f"  {cat}", v)
-
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c)
-    med, n_d = med_iqr(coh["n_partners_num"])
-    v[c] = f"{med}\n[n={n_d:,}, {n_d/len(coh)*100:.1f}%]" if len(coh) else "—"
+    coh = get_cohort(c); m, n = med_iqr(coh["n_partners_num"])
+    v[c] = f"{m}\n[n={n:,}, {n/len(coh)*100:.1f}%]" if len(coh) else "—"
 add_row("Number of sexual partners — median (IQR)", v)
-
+ 
 v = {}
 for c in ORDER:
     coh = get_cohort(c); n = coh["on_prep"].sum(); v[c] = n_pct(n, len(coh))
 add_row("Self-reported on PrEP", v)
-
+ 
 v = {}
 for c in ORDER:
     coh = get_cohort(c); n = coh["hiv_pos"].sum(); v[c] = n_pct(n, len(coh))
 add_row("HIV positive — self-reported", v)
-
+ 
 # Risk stratification
 add_section("HIV risk stratification")
 v = {}
 for c in ORDER:
     coh = get_cohort(c); n = coh["c_scr"].sum(); v[c] = n_pct(n, len(coh))
 add_row("Received risk score", v)
-
+ 
 v = {}
 for c in ORDER:
-    coh = get_cohort(c); med, _ = med_iqr(coh["risk_score"], dec=3); v[c] = med
+    coh = get_cohort(c)
+    if c == "All":
+        v[c] = "—"   # Not meaningful for all-users column
+    else:
+        m, _ = med_iqr(coh["risk_score"], dec=3); v[c] = m
 add_row("Risk score — median (IQR)", v)
-
+ 
 for cls in ["low","medium","high"]:
     v = {}
     for c in ORDER:
@@ -365,14 +355,17 @@ for cls in ["low","medium","high"]:
         d = coh["c_scr"].sum()
         v[c] = n_pct(n, d) if d else "—"
     add_row(f"  {cls.capitalize()}", v)
-
+ 
 v = {}
 for c in ORDER:
     coh = get_cohort(c)
     n = coh["risk_score_classification"].isin(["medium","high"]).sum()
-    v[c] = f"{n:,} ({n/len(coh)*100:.1f}% of cohort)"
+    if c == "Scored":
+        v[c] = f"{n:,} ({n/coh['c_scr'].sum()*100:.1f}% of scored)"
+    else:
+        v[c] = f"{n:,} ({n/len(coh)*100:.1f}% of all)"
 add_row("Medium or high risk", v)
-
+ 
 risk_count = scored_records.groupby("patient_id").size()
 two_plus = set(risk_count[risk_count >= 2].index)
 v = {}
@@ -382,11 +375,11 @@ for c in ORDER:
     n_2p = coh["patient_id"].isin(two_plus).sum()
     v[c] = f"{n_2p:,} ({n_2p/n_scr*100:.1f}% of scored)" if n_scr else "—"
 add_row("With 2+ risk assessments", v)
-
+ 
 # ─── Print ──────────────────────────────────────────────────────────────────
-print("\n" + "=" * 140)
-print(f"{'Variable':<46}{COHORT_LABELS['All']:>30}{COHORT_LABELS['Engagers']:>30}{COHORT_LABELS['Scored']:>30}")
-print("=" * 140)
+print("\n" + "=" * 130)
+print(f"{'Variable':<46}{COHORT_LABELS['All']:>28}{COHORT_LABELS['Engagers']:>28}{COHORT_LABELS['Scored']:>28}")
+print("=" * 130)
 for r in rows:
     if r["kind"] == "section":
         print(f"\n{r['label']}")
@@ -394,9 +387,9 @@ for r in rows:
     a = r["All"].replace("\n","  ")
     e = r["Engagers"].replace("\n","  ")
     s = r["Scored"].replace("\n","  ")
-    print(f"  {r['label']:<44}{a:>30}{e:>30}{s:>30}")
-# Checking this
-# Save
+    print(f"  {r['label']:<44}{a:>28}{e:>28}{s:>28}")
+ 
+# Save CSV
 out = []
 for r in rows:
     if r["kind"] == "section":

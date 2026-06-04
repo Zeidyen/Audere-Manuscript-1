@@ -19,8 +19,9 @@ import statsmodels.formula.api as smf
 import warnings
 warnings.filterwarnings("ignore")
 
-DATA_DIR = "/home/zeid/audere_manuscript_1/data"
-OUT_DIR  = "/home/zeid/audere_manuscript_1"
+_HERE    = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.environ.get("AUDERE_DATA_DIR", os.path.join(_HERE, "data"))
+OUT_DIR  = os.environ.get("AUDERE_OUT_DIR", _HERE)
 
 SAST = "Africa/Johannesburg"
 START = pd.Timestamp("2025-03-17 00:00:00", tz=SAST)
