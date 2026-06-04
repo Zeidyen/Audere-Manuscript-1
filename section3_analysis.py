@@ -137,7 +137,13 @@ combined_verified = s1_after | s2_total   # S2: all nurse-reviewed self-tests in
 s3_pids = set(prof_c[prof_c["hiv_status_val"].notna() & ~prof_c["hiv_status_val"].isin(["unknown",""])]["patient_id"].unique())
 s4_pids = set(prof_c[prof_c["last_hiv_test_val"].notna() & ~prof_c["last_hiv_test_val"].isin(["never","clientUnknown",""])]["patient_id"].unique())
 # Source 5: care-linkage HIV-testing date self-disclosed to platform
-s5_pids = set(prof_c[prof_c["care_linkage_hiv_testing_val"].notna() & ~prof_c["care_linkage_hiv_testing_val"].isin(["unspecified","clientUnknown",""])]["patient_id"].unique())
+# Restricted to disclosures made within the study window (by disclosure timestamp)
+s5_pids = set(prof_c[
+    prof_c["care_linkage_hiv_testing_val"].notna()
+    & ~prof_c["care_linkage_hiv_testing_val"].isin(["unspecified","clientUnknown",""])
+    & (prof_c["care_linkage_hiv_testing_ts"] >= START)
+    & (prof_c["care_linkage_hiv_testing_ts"] <= END)
+]["patient_id"].unique())
 
 union_all = s1_after | s2_total | s3_pids | s4_pids | s5_pids  # S2: all incl same-day Wondfo recruitment events
 
