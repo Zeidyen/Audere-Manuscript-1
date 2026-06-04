@@ -109,13 +109,17 @@ def _get_v(row, *keys):
 prof["hiv_status_val"]    = prof.apply(lambda r: _get_v(r, "hiv_status", "value"), axis=1)
 prof["last_hiv_test_val"] = prof.apply(lambda r: _get_v(r, "last_hiv_test", "value"), axis=1)
 prof["takes_prep_val"]    = prof.apply(lambda r: _get_v(r, "takes_prep", "value"), axis=1)
+prof["care_linkage_hiv_testing_val"] = prof.apply(lambda r: _get_v(r, "care_linkage_hiv_testing", "value"), axis=1)
 
 s3_pids = set(prof[prof["hiv_status_val"].isin(["negative","positive"])]["patient_id"].unique()) & all_pids
 s4_pids = set(prof[prof["last_hiv_test_val"].isin(
     ["0_3_months","3_6_months","6_12_months","more_than_12_months"])]["patient_id"].unique()) & all_pids
+# S5: care-linkage HIV-testing date self-disclosed to platform
+s5_pids = set(prof[prof["care_linkage_hiv_testing_val"].notna() & ~prof["care_linkage_hiv_testing_val"].isin(
+    ["unspecified","clientUnknown",""])]["patient_id"].unique()) & all_pids
 
-# Primary HIV = union of all 4 sources
-primary_pids = verified_pids | s3_pids | s4_pids
+# Primary HIV = union of all 5 sources
+primary_pids = verified_pids | s3_pids | s4_pids | s5_pids
 
 # Primary PrEP = CBO-verified + self-disclosed PrEP use
 prep_cbo = ctc[ctc["medication_type"] == "PrEP"].copy()

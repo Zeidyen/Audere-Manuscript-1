@@ -75,7 +75,7 @@ All outcomes are anchored at the analytic cohort (n=9,310). Same-day events — 
 ## Key outcome definitions
 
 ### Primary HIV testing outcome
-Union of four sources, restricted to events on a strictly later day than first Aimee message:
+Union of five sources. The verified sources (S1–S2) are restricted to events on a strictly later day than first Aimee message; the self-disclosed sources (S3–S5) are presence-based:
 
 | Source | Type | Verification |
 |---|---|---|
@@ -83,8 +83,9 @@ Union of four sources, restricted to events on a strictly later day than first A
 | S2: Nurse-reviewed self-test upload | All (incl. same-day Wondfo) | Moderate — nurse-reviewed |
 | S3: HIV status disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
 | S4: HIV test date disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
+| S5: Care-linkage HIV-testing date disclosed to Aimee | Post-disclosure timestamp | Weak — may pre-date engagement |
 
-Primary union: **3,484 (37·4%)**  
+Primary union: **3,493 (37·5%)**  
 Conservative secondary (S1+S2 only): **1,714 (18·4%)**
 
 > **Note on S3/S4:** The disclosure timestamp records when the patient *told Aimee*, not when the test occurred. The underlying test event may pre-date platform engagement. For Phithos risk subgroup analyses, CBO-verified outcomes are used instead of the union to avoid ceiling effects.

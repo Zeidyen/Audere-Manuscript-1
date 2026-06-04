@@ -4,7 +4,8 @@ A,Primary analysis,Source 2. Nurse-reviewed self-test upload,420,289 (68.8),131 
 A,Primary analysis,Combined primary (Sources 1+2),—,—,"1,714 (18.4)",Independently verified
 A,Supplementary sources only,Source 3. Self-disclosed HIV status,936,NA,NA,Weak
 A,Supplementary sources only,Source 4. HIV test date self-disclosed to platform,"2,098",NA,NA,Weak
-A,,Union of all sources,—,—,"3,484 (37.4)",Mixed
+A,Supplementary sources only,Source 5. Care-linkage HIV testing date self-disclosed to platform,"1,883",NA,NA,Weak
+A,,Union of all sources,—,—,"3,493 (37.5)",Mixed
 B,Primary analysis,Source 1. CBO-verified dispensing,"2,479","1,669 (67.3)",810 (8.7),Strong
 B,Supplementary source only,Source 2. Self-disclosed PrEP start date,429,NA,NA,Weak
 B,,Union of both sources,—,—,"1,124 (12.1)",Mixed

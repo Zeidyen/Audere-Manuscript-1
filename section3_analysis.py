@@ -1,6 +1,6 @@
 """
 SECTION 3 — HIV Testing and PrEP Uptake (REVISED)
-Primary HIV testing = Union of all 4 sources (broadest)
+Primary HIV testing = Union of all 5 sources (broadest)
 Secondary HIV testing = CBO-verified + nurse-reviewed self-test (Sources 1+2)
 Primary PrEP uptake = CBO-verified PrEP + self-disclosed PrEP start
 Secondary PrEP uptake = CBO-verified only
@@ -101,7 +101,7 @@ def gv(extracted, field):
         return (None, None)
 
 print("Parsing JSON...")
-for fld in ["hiv_status","last_hiv_test","care_linkage_starting_prep"]:
+for fld in ["hiv_status","last_hiv_test","care_linkage_starting_prep","care_linkage_hiv_testing"]:
     parsed = prof["extracted_data"].apply(lambda x: gv(x, fld))
     prof[f"{fld}_val"] = [x[0] for x in parsed]
     prof[f"{fld}_ts"]  = to_sast(pd.Series([x[1] for x in parsed]))
@@ -133,11 +133,13 @@ s2_same_only = s2_total - s2_after
 
 combined_verified = s1_after | s2_total   # S2: all nurse-reviewed self-tests incl same-day Wondfo
 
-# Source 3 & 4: self-disclosed
+# Source 3, 4 & 5: self-disclosed
 s3_pids = set(prof_c[prof_c["hiv_status_val"].notna() & ~prof_c["hiv_status_val"].isin(["unknown",""])]["patient_id"].unique())
 s4_pids = set(prof_c[prof_c["last_hiv_test_val"].notna() & ~prof_c["last_hiv_test_val"].isin(["never","clientUnknown",""])]["patient_id"].unique())
+# Source 5: care-linkage HIV-testing date self-disclosed to platform
+s5_pids = set(prof_c[prof_c["care_linkage_hiv_testing_val"].notna() & ~prof_c["care_linkage_hiv_testing_val"].isin(["unspecified","clientUnknown",""])]["patient_id"].unique())
 
-union_all = s1_after | s2_total | s3_pids | s4_pids  # S2: all incl same-day Wondfo recruitment events
+union_all = s1_after | s2_total | s3_pids | s4_pids | s5_pids  # S2: all incl same-day Wondfo recruitment events
 
 # PrEP Source 1
 prep_ctc = ctc[ctc["medication_type"] == "PrEP"].copy()
@@ -161,6 +163,7 @@ print(f"  Source 2 (Nurse-reviewed):         total={len(s2_total)},  same-day on
 print(f"  Combined primary (S1+S2):                                                       n={len(combined_verified)}")
 print(f"  Source 3 (HIV status disclosed):   n={len(s3_pids)}")
 print(f"  Source 4 (test date disclosed):    n={len(s4_pids)}")
+print(f"  Source 5 (care-linkage HIV test):  n={len(s5_pids)}")
 print(f"  UNION of all sources (PRIMARY):    n={len(union_all)} ({len(union_all)/N*100:.1f}%)")
 print(f"\nPANEL B — PrEP UPTAKE")
 print(f"  Source 1 (CBO dispensing):         total={len(p1_total)},  same-day only={len(p1_same_only)},  timing-corrected={len(p1_after)}")
@@ -187,6 +190,8 @@ supp3_rows.extend([
      "total": fmt_n(len(s3_pids)), "same_day":"NA","timing":"NA","verif":"Weak"},
     {"panel":"A","group":"Supplementary sources only","source":"Source 4. HIV test date self-disclosed to platform",
      "total": fmt_n(len(s4_pids)), "same_day":"NA","timing":"NA","verif":"Weak"},
+    {"panel":"A","group":"Supplementary sources only","source":"Source 5. Care-linkage HIV testing date self-disclosed to platform",
+     "total": fmt_n(len(s5_pids)), "same_day":"NA","timing":"NA","verif":"Weak"},
     {"panel":"A","group":"","source":"Union of all sources",
      "total":"—","same_day":"—","timing": fmt_pct_cohort(len(union_all)),"verif":"Mixed"},
     {"panel":"B","group":"Primary analysis","source":"Source 1. CBO-verified dispensing",

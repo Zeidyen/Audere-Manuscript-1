@@ -2,8 +2,8 @@
   "N_cohort": 9310,
   "N": 9310,
   "two_way_nurse": 2456,
-  "primary_HIV_test": 3484,
-  "primary_hiv": 3484,
+  "primary_HIV_test": 3493,
+  "primary_hiv": 3493,
   "verified_HIV_test": 1714,
   "secondary_hiv": 1714,
   "s1_total": 3497,
@@ -133,7 +133,7 @@
       "UNION OF ALL SOURCES (Primary analysis)",
       "\u2014",
       "\u2014",
-      "3,484 (37.4%)",
+      "3,493 (37.5%)",
       "Mixed"
     ]
   ],
