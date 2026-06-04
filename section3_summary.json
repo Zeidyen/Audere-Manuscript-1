@@ -1,0 +1,177 @@
+{
+  "N_cohort": 9310,
+  "N": 9310,
+  "two_way_nurse": 2456,
+  "primary_HIV_test": 3484,
+  "primary_hiv": 3484,
+  "verified_HIV_test": 1714,
+  "secondary_hiv": 1714,
+  "s1_total": 3497,
+  "s1_after": 1345,
+  "s2_total": 420,
+  "s2_after": 131,
+  "s3": 936,
+  "s4": 2098,
+  "primary_PrEP": 1124,
+  "primary_prep": 1124,
+  "verified_PrEP": 810,
+  "secondary_prep": 810,
+  "p1_total": 2479,
+  "p2": 429,
+  "hiv_neg_cbo": 1338,
+  "hiv_neg_and_prep_cbo": 807,
+  "HIV_neg_and_prep": 1037,
+  "hiv_neg_and_prep": 1037,
+  "triple": 95,
+  "eligible_triple": 253,
+  "prep_pep_tasks": 626,
+  "prep_pep_to_prep": 210,
+  "median_days_prep": 42.607638888888886,
+  "median_days_prep_cbo": 42.607638888888886,
+  "iqr_days_prep": [
+    15.27170138888889,
+    75.57708333333333
+  ],
+  "iqr_prep": [
+    15.27170138888889,
+    75.57708333333333
+  ],
+  "median_days_triple": 22.382291666666667,
+  "median_days_meaningful": 41.61666666666667,
+  "median_days_prep_meaningful": 41.61666666666667,
+  "median_days_single": 53.56527777777778,
+  "median_days_prep_single": 53.56527777777778,
+  "pct_30d_meaningful": 40.24960998439938,
+  "pct_prep_30d_m": 40.24960998439938,
+  "pct_30d_single": 30.76923076923077,
+  "pct_prep_30d_s": 30.76923076923077,
+  "HR_hiv": [
+    2.114533316200032,
+    1.8672794435433233,
+    2.394527054202086,
+    3.778684182257191e-32
+  ],
+  "HR_prep": [
+    2.2237801703416067,
+    1.8796795850871462,
+    2.6308729877359784,
+    1.185734432267299e-20
+  ],
+  "hiv_probs": [
+    23.384253819036427,
+    16.872427983539097,
+    16.265060240963855
+  ],
+  "p_trend_hiv": 0.02896543985946427,
+  "prep_probs": [
+    12.45593419506463,
+    11.11111111111111,
+    11.44578313253012
+  ],
+  "p_trend_prep": 0.9793988497808993,
+  "hiv_low_med_high": [
+    23.384253819036427,
+    16.872427983539097,
+    16.265060240963855
+  ],
+  "prep_low_med_high": [
+    12.45593419506463,
+    11.11111111111111,
+    11.44578313253012
+  ],
+  "panel_a_rows": [
+    [
+      "Primary analysis",
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Source 1. CBO-verified clinic record",
+      "3,497",
+      "2,152 (61.5%)",
+      "1,345 (14.4%)",
+      "Strong (reference)"
+    ],
+    [
+      "Source 2. Nurse-reviewed self-test upload",
+      "420",
+      "289 (68.8%)",
+      "131 (1.4%)",
+      "Moderate"
+    ],
+    [
+      "Combined verified (Sources 1+2)",
+      "\u2014",
+      "\u2014",
+      "1,714 (18.4%)",
+      "Independently verified"
+    ],
+    [
+      "Supplementary sources",
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Source 3. Self-disclosed HIV status",
+      "936",
+      "NA",
+      "NA",
+      "Weak"
+    ],
+    [
+      "Source 4. HIV test date self-disclosed to platform",
+      "2,098",
+      "NA",
+      "NA",
+      "Weak"
+    ],
+    [
+      "UNION OF ALL SOURCES (Primary analysis)",
+      "\u2014",
+      "\u2014",
+      "3,484 (37.4%)",
+      "Mixed"
+    ]
+  ],
+  "panel_b_rows": [
+    [
+      "Primary analysis",
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Source 1. CBO-verified dispensing",
+      "2,479",
+      "1,669 (67.3%)",
+      "810 (8.7%)",
+      "Strong"
+    ],
+    [
+      "Supplementary source",
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "Source 2. Self-disclosed PrEP use",
+      "429",
+      "NA",
+      "NA",
+      "Weak"
+    ],
+    [
+      "UNION OF BOTH SOURCES (Primary analysis)",
+      "\u2014",
+      "\u2014",
+      "1,124 (12.1%)",
+      "Mixed"
+    ]
+  ]
+}

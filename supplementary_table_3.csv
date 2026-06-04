@@ -1,0 +1,10 @@
+panel,group,source,total,same_day,timing,verif
+A,Primary analysis,Source 1. CBO-verified clinic record,"3,497","2,152 (61.5)","1,345 (14.4)",Strong (Reference)
+A,Primary analysis,Source 2. Nurse-reviewed self-test upload,420,289 (68.8),131 (1.4),Moderate
+A,Primary analysis,Combined primary (Sources 1+2),—,—,"1,714 (18.4)",Independently verified
+A,Supplementary sources only,Source 3. Self-disclosed HIV status,936,NA,NA,Weak
+A,Supplementary sources only,Source 4. HIV test date self-disclosed to platform,"2,098",NA,NA,Weak
+A,,Union of all sources,—,—,"3,484 (37.4)",Mixed
+B,Primary analysis,Source 1. CBO-verified dispensing,"2,479","1,669 (67.3)",810 (8.7),Strong
+B,Supplementary source only,Source 2. Self-disclosed PrEP start date,429,NA,NA,Weak
+B,,Union of both sources,—,—,"1,124 (12.1)",Mixed

@@ -1,0 +1,133 @@
+{
+  "N_total_repeat": 793,
+  "N_meaningful": 315,
+  "median_span": 48.576388888888886,
+  "iqr_span_lo": 24.08611111111111,
+  "iqr_span_hi": 90.06909722222223,
+  "q1_overall": [
+    {
+      "change": "reduced",
+      "n": 41,
+      "prep_n": 21,
+      "prep_pct": 51.21951219512195
+    },
+    {
+      "change": "unchanged",
+      "n": 216,
+      "prep_n": 83,
+      "prep_pct": 38.425925925925924
+    },
+    {
+      "change": "increased",
+      "n": 58,
+      "prep_n": 22,
+      "prep_pct": 37.93103448275862
+    }
+  ],
+  "q1_strat": [
+    {
+      "baseline": "low",
+      "change": "unchanged",
+      "n": 162,
+      "prep_n": 72,
+      "prep_pct": 44.44444444444444
+    },
+    {
+      "baseline": "low",
+      "change": "increased",
+      "n": 47,
+      "prep_n": 20,
+      "prep_pct": 42.5531914893617
+    },
+    {
+      "baseline": "medium",
+      "change": "reduced",
+      "n": 20,
+      "prep_n": 10,
+      "prep_pct": 50.0
+    },
+    {
+      "baseline": "medium",
+      "change": "unchanged",
+      "n": 30,
+      "prep_n": 8,
+      "prep_pct": 26.666666666666668
+    },
+    {
+      "baseline": "medium",
+      "change": "increased",
+      "n": 11,
+      "prep_n": 2,
+      "prep_pct": 18.181818181818183
+    },
+    {
+      "baseline": "high",
+      "change": "reduced",
+      "n": 21,
+      "prep_n": 11,
+      "prep_pct": 52.38095238095239
+    },
+    {
+      "baseline": "high",
+      "change": "unchanged",
+      "n": 24,
+      "prep_n": 3,
+      "prep_pct": 12.5
+    }
+  ],
+  "q1_aor_reduced": {
+    "or": 3.7285921043580355,
+    "lo": 1.4940301159354328,
+    "hi": 9.30530043029059,
+    "p": 0.004796934542893031,
+    "p_fmt": "0\u00b7005"
+  },
+  "q1_aor_increased": {
+    "or": 0.9260634648990531,
+    "lo": 0.4964794551724293,
+    "hi": 1.727349504770533,
+    "p": 0.8091694903758492,
+    "p_fmt": "0\u00b7809"
+  },
+  "q2_rows": [
+    {
+      "group": "Two-way nurse contact",
+      "n": 92,
+      "reduced_n": 40,
+      "reduced_pct": 43.47826086956522
+    },
+    {
+      "group": "No two-way contact",
+      "n": 14,
+      "reduced_n": 1,
+      "reduced_pct": 7.142857142857142
+    }
+  ],
+  "q2_aor": {
+    "or": 10.561414327684718,
+    "lo": 1.1760418847051664,
+    "hi": 94.84651359078758,
+    "p": 0.03531291801140588,
+    "p_fmt": "0\u00b7035"
+  },
+  "transition_matrix": {
+    "low": {
+      "low": 162,
+      "medium": 20,
+      "high": 15
+    },
+    "medium": {
+      "low": 32,
+      "medium": 30,
+      "high": 6
+    },
+    "high": {
+      "low": 15,
+      "medium": 11,
+      "high": 24
+    }
+  },
+  "N_baseline_low": 209,
+  "N_baseline_medium": 61,
+  "N_baseline_high": 45
+}

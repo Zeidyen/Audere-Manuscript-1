@@ -35,7 +35,7 @@ def gv(row, *keys):
         for k in keys: d = d[k]
         return d
     except Exception: return None
-
+ 
 # ─── Cohort ─────────────────────────────────────────────────────────────────
 print("Loading...")
 msgs = pd.read_csv(p("ficus_messages_clover_fieldstudy_updated.csv"),
@@ -54,17 +54,21 @@ df = pd.DataFrame({"patient_id": sorted(all_pids)}).merge(t0.reset_index(), on="
 df["first_aimee_date"] = df["first_aimee_ts"].dt.date
 df["reg_month"] = df["first_aimee_ts"].dt.month_name()
 N = len(df)
+ 
+risk = pd.read_csv(p("ficus_risk_assessments_clover_fieldstudy_updated.csv"), low_memory=False)
+risk = risk[risk["is_test_data"] == False]
+risk["ts"] = to_sast(risk["assessment_timestamp"])
 print(f"Cohort: {N:,}")
-
+ 
 # ─── HCW engagement categories ─────────────────────────────────────────────
 hcw = pd.read_csv(p("ficus_hcw_conversations_clover_fieldstudy_updated.csv"), low_memory=False)
 hcw = hcw[hcw["is_test_data"] == False]
 hcw["first_ts"] = to_sast(hcw["first_recorded_message_timestamp"])
 hcw_in = hcw[(hcw["first_ts"] >= START) & (hcw["first_ts"] <= END)]
-
+ 
 two_way_pids = set(hcw_in[(hcw_in["num_user_messages"] >= 1) &
                           (hcw_in["num_hcw_messages"] >= 1)]["patient_id"].unique()) & all_pids
-
+ 
 # "HCW task generated but no patient response": tasks were created for the patient
 # but they did not reciprocate in a conversation. Use the patient_tasks table to
 # identify patients with any HCW outreach task in the window, then subtract two-way.
@@ -73,17 +77,17 @@ tasks = tasks[tasks["is_test_data"] == False]
 tasks["task_ts"] = to_sast(tasks["task_created"])
 tasks_in = tasks[(tasks["task_ts"] >= START) & (tasks["task_ts"] <= END)]
 tasks_in = tasks_in[tasks_in["patient_id"].isin(all_pids)]
-
+ 
 any_task_pids = set(tasks_in["patient_id"].unique())
 one_way_pids = any_task_pids - two_way_pids
 no_contact_pids = all_pids - two_way_pids - one_way_pids
 print(f"  Two-way nurse: {len(two_way_pids):,} ({len(two_way_pids)/N*100:.1f}%)")
 print(f"  Task only:     {len(one_way_pids):,} ({len(one_way_pids)/N*100:.1f}%)")
 print(f"  No contact:    {len(no_contact_pids):,} ({len(no_contact_pids)/N*100:.1f}%)")
-
+ 
 df["hcw_group"] = np.where(df["patient_id"].isin(two_way_pids), "two_way",
                   np.where(df["patient_id"].isin(one_way_pids), "task_only", "none"))
-
+ 
 # ─── Outcomes (primary definitions, aligned with Section 3) ────────────────
 pat = pd.read_csv(p("ficus_patients_clover_fieldstudy_updated.csv"), low_memory=False)
 pat = pat[pat["is_test_data"] == False]
@@ -98,35 +102,49 @@ prof = prof[prof["is_test_data"] == False]
 prof["hiv_status_val"]    = prof.apply(lambda r: gv(r, "hiv_status", "value"), axis=1)
 prof["last_hiv_test_val"] = prof.apply(lambda r: gv(r, "last_hiv_test", "value"), axis=1)
 prof["takes_prep_val"]    = prof.apply(lambda r: gv(r, "takes_prep", "value"), axis=1)
-
+ 
 ctc_v = ctc[ctc["test_result"].isin(["Negative","Positive","Discordant"])].copy()
 ctc_v = ctc_v[(ctc_v["ts"] >= START) & (ctc_v["ts"] <= END)]
 ctc_v["date"] = ctc_v["ts"].dt.date
 ctc_v = ctc_v.merge(df[["patient_id","first_aimee_date"]], on="patient_id", how="inner")
 s1 = set(ctc_v[ctc_v["date"] > ctc_v["first_aimee_date"]]["patient_id"].unique())
-
+ 
 st_n = st[st["image_reviewer_interpretation"].notna()].copy()
 st_n = st_n[(st_n["ts"] >= START) & (st_n["ts"] <= END)]
 st_n["date"] = st_n["ts"].dt.date
 st_n = st_n.merge(df[["patient_id","first_aimee_date"]], on="patient_id", how="inner")
 s2 = set(st_n[st_n["date"] > st_n["first_aimee_date"]]["patient_id"].unique())
-
+ 
 s3 = set(prof[prof["hiv_status_val"].isin(["negative","positive"])]["patient_id"].unique()) & all_pids
 s4 = set(prof[prof["last_hiv_test_val"].isin(
     ["0_3_months","3_6_months","6_12_months","more_than_12_months"])]["patient_id"].unique()) & all_pids
-primary_hiv = s1 | s2 | s3 | s4
-
+ 
+# S5: care_linkage_hiv_testing
+s5 = set(prof[prof.apply(lambda r: gv(r,"care_linkage_hiv_testing","value") not in [None,False,""], axis=1)
+]["patient_id"].unique()) & all_pids
+ 
+primary_hiv = s1 | s2 | s3 | s4 | s5
+ 
 prep_cbo = ctc[ctc["medication_type"] == "PrEP"].copy()
 prep_cbo = prep_cbo[(prep_cbo["ts"] >= START) & (prep_cbo["ts"] <= END)]
 prep_cbo["date"] = prep_cbo["ts"].dt.date
 prep_cbo = prep_cbo.merge(df[["patient_id","first_aimee_date"]], on="patient_id", how="inner")
 p1 = set(prep_cbo[prep_cbo["date"] > prep_cbo["first_aimee_date"]]["patient_id"].unique())
 p2 = set(prof[prof["takes_prep_val"] == True]["patient_id"].unique()) & all_pids
-primary_prep = p1 | p2
-
+ 
+# P3: care_linkage_starting_prep; P4: care_linkage_prep_refill
+p3 = set(prof[prof.apply(lambda r: gv(r,"care_linkage_starting_prep","value") not in [None,False,""], axis=1)
+]["patient_id"].unique()) & all_pids
+p4 = set(prof[prof.apply(lambda r: gv(r,"care_linkage_prep_refill","value") not in [None,False,""], axis=1)
+]["patient_id"].unique()) & all_pids
+ 
+primary_prep = p1 | p2 | p3 | p4
+print(f"HIV primary (S1-S5): {len(primary_hiv):,} ({len(primary_hiv)/len(all_pids)*100:.1f}%)")
+print(f"PrEP primary (P1-P4): {len(primary_prep):,} ({len(primary_prep)/len(all_pids)*100:.1f}%)")
+ 
 df["hiv"]  = df["patient_id"].isin(primary_hiv).astype(int)
 df["prep"] = df["patient_id"].isin(primary_prep).astype(int)
-
+ 
 # ─── Overall HCW group comparisons ─────────────────────────────────────────
 print("\n=== HCW group comparisons (primary outcomes) ===")
 table_overall = []
@@ -142,7 +160,7 @@ for grp, label in [("two_way","Two-way nurse conversation"),
         "prep_n": int(sub["prep"].sum()), "prep_pct": prep_rate,
     })
     print(f"  {label:<45} n={len(sub):>5}  HIV={hiv_rate:>5.1f}%  PrEP={prep_rate:>5.1f}%")
-
+ 
 # Logistic regression: two-way vs no contact (reference)
 df_lr = df[df["hcw_group"].isin(["two_way","none"])].copy()
 df_lr["two_way"] = (df_lr["hcw_group"] == "two_way").astype(int)
@@ -156,19 +174,19 @@ prep_or, prep_lo, prep_hi, prep_p = or_ci(prep_m, "two_way")
 print(f"\nTwo-way nurse vs no contact (adjusted for registration month):")
 print(f"  HIV testing:  AOR {hiv_or:.2f} (95% CI {hiv_lo:.2f}\u2013{hiv_hi:.2f}); p={hiv_p:.3g}")
 print(f"  PrEP uptake:  AOR {prep_or:.2f} (95% CI {prep_lo:.2f}\u2013{prep_hi:.2f}); p={prep_p:.3g}")
-
+ 
 # ─── Flag-level breakdowns ─────────────────────────────────────────────────
 FLAGS = [
-    ("Risk score",          ["concern_risk_score"]),
-    ("Positive test",       ["concern_positive_test", "concern_self_reported_hiv_positive_status"]),
-    ("Self-test interest",  ["interest_in_self_testing"]),
-    ("PrEP/PEP interest",   ["possible_interest_in_prep_or_pep"]),
-    ("Chat content",        ["concern_chat_content"]),
-    ("Follow-up",           ["followup"]),
-    ("Negative test",       ["concern_negative_test"]),
-    ("Chat request",        ["request_to_chat"]),
+    ("Elevated Phithos risk score",       ["concern_risk_score"]),
+    ("Possible positive HIV test",        ["concern_positive_test", "concern_self_reported_hiv_positive_status"]),
+    ("Interest in HIV self-testing",      ["interest_in_self_testing"]),
+    ("Interest in PrEP or PEP",           ["possible_interest_in_prep_or_pep"]),
+    ("Concerning conversation content",   ["concern_chat_content"]),
+    ("Routine nurse follow-up",           ["followup"]),
+    ("Negative HIV test disclosed",       ["concern_negative_test"]),
+    ("Patient-initiated nurse request",   ["request_to_chat"]),
 ]
-
+ 
 print("\n=== Flag-level breakdown (n; nurse-contact %; HIV %; PrEP %) ===")
 flag_rows = []
 for label, types in FLAGS:
@@ -184,67 +202,61 @@ for label, types in FLAGS:
         "hiv_pct": hiv_pct, "prep_pct": prep_pct,
     })
     print(f"  {label:<22} n={n:>5}  nurse={nurse_pct:>5.1f}%  HIV={hiv_pct:>5.1f}%  PrEP={prep_pct:>5.1f}%")
-
+ 
 flag_df = pd.DataFrame(flag_rows)
 # Order by nurse contact for Figure 6A (descending)
 flag_df_6a = flag_df.sort_values("nurse_pct", ascending=False).reset_index(drop=True)
 # Use that same order for 6B to keep visual consistency with the draft
 flag_df_6b = flag_df_6a.copy()
-
+ 
 # ═══════════════════════════════════════════════════════════════════════════
 # FIGURE 6A — Two-way nurse contact rate by flag type
 # ═══════════════════════════════════════════════════════════════════════════
 print("\nBuilding Figure 6A...")
-fig, ax = plt.subplots(figsize=(10, 7))
+fig, ax = plt.subplots(figsize=(12, 7))
 labels = flag_df_6a["flag"].tolist()
 vals = flag_df_6a["nurse_pct"].tolist()
 ns = flag_df_6a["n"].tolist()
 y = np.arange(len(labels))[::-1]
 ax.barh(y, vals, color="#5e7fa2", edgecolor="none")
 for yi, v, n in zip(y, vals, ns):
-    # Right-side percentage
-    ax.text(v + 1.5, yi, f"{v:.1f}%", va="center", fontsize=13, fontweight="bold", color="#1a3a52")
-    # Left-side n-label inside bar
+    ax.text(v + 1.2, yi, f"{v:.1f}%", va="center", fontsize=13, fontweight="bold", color="#1a3a52")
     ax.text(2, yi, f"n={n:,}", va="center", fontsize=11, color="white")
-ax.set_yticks(y); ax.set_yticklabels(labels)
-ax.set_xlim(0, 100); ax.set_xlabel("Two-way nurse conversation (%)")
+ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=12)
+ax.set_xlim(0, 100); ax.set_xlabel("Two-way nurse conversation (%)", fontsize=12)
 ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
 plt.tight_layout()
 plt.savefig(os.path.join(OUT_DIR, "figure_6a_nurse_contact.png"), dpi=150, bbox_inches="tight")
 plt.close()
-
+ 
 # ═══════════════════════════════════════════════════════════════════════════
 # FIGURE 6B — HIV testing & PrEP uptake rates by flag type
 # ═══════════════════════════════════════════════════════════════════════════
 print("Building Figure 6B...")
-fig, ax = plt.subplots(figsize=(10, 7))
+fig, ax = plt.subplots(figsize=(12, 7))
 labels = flag_df_6b["flag"].tolist()
 hiv_vals  = flag_df_6b["hiv_pct"].tolist()
 prep_vals = flag_df_6b["prep_pct"].tolist()
 y = np.arange(len(labels))[::-1]
 bar_h = 0.36
-# HIV bars (top, solid blue)
 b1 = ax.barh(y + bar_h/2, hiv_vals,  bar_h, color="#5e7fa2", edgecolor="none", label="HIV testing uptake")
-# PrEP bars (bottom, hatched green)
 b2 = ax.barh(y - bar_h/2, prep_vals, bar_h, color="#5fa67f", edgecolor="white", hatch="///", label="PrEP uptake")
-
 for yi, hv, pv in zip(y, hiv_vals, prep_vals):
     ax.text(hv + 0.4, yi + bar_h/2, f"{hv:.1f}%", va="center", fontsize=12, fontweight="bold", color="#1a3a52")
     ax.text(pv + 0.4, yi - bar_h/2, f"{pv:.1f}%", va="center", fontsize=12, color="#22593d")
-
-ax.set_yticks(y); ax.set_yticklabels(labels)
-ax.set_xlabel("Care uptake rate (%)")
+ax.set_yticks(y); ax.set_yticklabels(labels, fontsize=12)
+ax.set_xlabel("Care uptake rate (%)", fontsize=12)
 ax.set_xlim(0, max(hiv_vals + prep_vals) * 1.18)
-ax.legend(loc="lower right", frameon=True)
+ax.legend(loc="lower right", frameon=True, fontsize=11)
 ax.spines["top"].set_visible(False); ax.spines["right"].set_visible(False)
 plt.tight_layout()
 plt.savefig(os.path.join(OUT_DIR, "figure_6b_uptake_by_flag.png"), dpi=150, bbox_inches="tight")
 plt.close()
-
+ 
 # ─── Supplementary Table 4 CSV ─────────────────────────────────────────────
 flag_df_6a.to_csv(os.path.join(OUT_DIR, "supplementary_table_4.csv"), index=False)
 pd.DataFrame(table_overall).to_csv(os.path.join(OUT_DIR, "supplementary_table_4_overall.csv"), index=False)
-
+ 
 # ─── Summary JSON ──────────────────────────────────────────────────────────
 summary = {
     "N": N,
@@ -265,12 +277,12 @@ summary = {
 with open(os.path.join(OUT_DIR, "section4_summary.json"), "w") as f:
     json.dump(summary, f, indent=2, default=str)
 print("\nDone. Wrote section4_summary.json")
-
+ 
 # ════════════════════════════════════════════════════════════════════════════
 # SENSITIVITY ANALYSIS — Demographic adjustment (Supp Table 4b)
 # ════════════════════════════════════════════════════════════════════════════
 print("\n--- Sensitivity: adjust two-way nurse AOR for age + biological sex ---")
-
+ 
 # Latest disclosed age + sex from risk_assessments
 risk_in = risk[(risk["ts"] >= START) & (risk["ts"] <= END)]
 risk_in = risk_in[risk_in["patient_id"].isin(all_pids)]
@@ -284,21 +296,21 @@ risk_in = risk_in.copy()
 risk_in["age_num"] = risk_in["llm_extracted_data_age"].apply(to_num)
 age_p = risk_in[risk_in["age_num"].notna()].sort_values("ts").groupby("patient_id").tail(1)[["patient_id","age_num"]]
 sex_p = risk_in[risk_in["llm_extracted_data_biological_sex"].isin(["female","male"])].sort_values("ts").groupby("patient_id").tail(1)[["patient_id","llm_extracted_data_biological_sex"]].rename(columns={"llm_extracted_data_biological_sex":"sex"})
-
+ 
 df_s = df.merge(age_p, on="patient_id", how="left").merge(sex_p, on="patient_id", how="left")
 disclosing = df_s.dropna(subset=["age_num","sex"]).copy()
 disclosing["two_way"] = (disclosing["hcw_group"]=="two_way").astype(int)
 disclosing["female"]  = (disclosing["sex"]=="female").astype(int)
-
+ 
 sub = disclosing[disclosing["hcw_group"].isin(["two_way","none"])].copy()
 m1_hiv  = smf.logit("hiv ~ two_way + C(reg_month)",  data=sub).fit(disp=False, method="bfgs", maxiter=200)
 m1_prep = smf.logit("prep ~ two_way + C(reg_month)", data=sub).fit(disp=False, method="bfgs", maxiter=200)
 m2_hiv  = smf.logit("hiv ~ two_way + C(reg_month) + age_num + female",  data=sub).fit(disp=False, method="bfgs", maxiter=200)
 m2_prep = smf.logit("prep ~ two_way + C(reg_month) + age_num + female", data=sub).fit(disp=False, method="bfgs", maxiter=200)
-
+ 
 def or_ci(m, v):
     return float(np.exp(m.params[v])), float(np.exp(m.conf_int().loc[v]).iloc[0]), float(np.exp(m.conf_int().loc[v]).iloc[1]), float(m.pvalues[v])
-
+ 
 results = {
     "N_disclosing_total": len(disclosing),
     "N_sensitivity_cohort": len(sub),
@@ -322,3 +334,65 @@ with open(os.path.join(OUT_DIR, "section4_sensitivity.json"), "w") as f:
 print(f"  Disclosing subset n = {len(disclosing):,}; sensitivity cohort n = {len(sub):,}")
 print(f"  HIV  AOR: {results['m1_hiv']['or']:.2f} → {results['m2_hiv']['or']:.2f}  (reg-month only → +age+sex)")
 print(f"  PrEP AOR: {results['m1_prep']['or']:.2f} → {results['m2_prep']['or']:.2f}")
+ 
+# ════════════════════════════════════════════════════════════════════════════
+# SUPPLEMENTARY ANALYSIS 1 — Conversation length among two-way patients
+# ════════════════════════════════════════════════════════════════════════════
+print("\n--- Analysis 1: Care uptake by conversation length (two-way patients) ---")
+hcw_in = hcw[(hcw["first_ts"] >= START) & (hcw["first_ts"] <= END)]
+hcw_two = hcw_in[(hcw_in["num_user_messages"]>=1)&(hcw_in["num_hcw_messages"]>=1)]
+hcw_two = hcw_two[hcw_two["patient_id"].isin(all_pids)].copy()
+hcw_two["total_msgs"] = hcw_two["num_user_messages"] + hcw_two["num_hcw_messages"]
+max_conv = hcw_two.groupby("patient_id")["total_msgs"].max().reset_index()
+max_conv.columns = ["patient_id","max_conv_msgs"]
+df_tw = df[df["hcw_group"]=="two_way"].merge(max_conv, on="patient_id", how="left")
+ 
+print(f"\n{'Length':<28} {'n':>6} {'HIV%':>8} {'PrEP%':>8}")
+print("-"*54)
+for lo, hi, lab in [(1,2,"Short (1–2 msgs)"),(3,5,"Medium (3–5 msgs)"),
+                    (6,10,"Longer (6–10 msgs)"),(11,9999,"Substantive (11+ msgs)")]:
+    sub2 = df_tw[(df_tw["max_conv_msgs"]>=lo)&(df_tw["max_conv_msgs"]<=hi)]
+    if len(sub2)==0: continue
+    print(f"{lab:<28} {len(sub2):>6,} {sub2['hiv'].mean()*100:>8.1f} {sub2['prep'].mean()*100:>8.1f}")
+task_df = df[df["hcw_group"]=="task_only"]
+print(f"{'Task-only (reference)':<28} {len(task_df):>6,} {task_df['hiv'].mean()*100:>8.1f} {task_df['prep'].mean()*100:>8.1f}")
+ 
+# ════════════════════════════════════════════════════════════════════════════
+# SUPPLEMENTARY ANALYSIS 2 — Task-only re-engagement within 7 days
+# ════════════════════════════════════════════════════════════════════════════
+print("\n--- Analysis 2: Task-only re-engagement with Aimee within 7 days ---")
+msgs_all = pd.read_csv(os.path.join(DATA_DIR,"ficus_messages_clover_fieldstudy_updated.csv"),
+                       usecols=["sent_timestamp","role","is_test_data","api_owner"],low_memory=False)
+msgs_all = msgs_all[msgs_all["is_test_data"]==False].rename(columns={"api_owner":"patient_id"})
+msgs_all["sent_ts"] = to_sast(msgs_all["sent_timestamp"])
+msgs_all = msgs_all[(msgs_all["sent_ts"]>=START)&(msgs_all["sent_ts"]<=END)&(msgs_all["role"]=="user")]
+ 
+first_task = tasks_in[tasks_in["patient_id"].isin(one_way_pids)].sort_values("task_ts").groupby("patient_id").first()[["task_ts"]].reset_index()
+task_remsg = first_task.merge(msgs_all[["patient_id","sent_ts"]], on="patient_id", how="left")
+task_remsg["days_after"] = (task_remsg["sent_ts"] - task_remsg["task_ts"]).dt.total_seconds()/86400
+returned_7d = set(task_remsg[(task_remsg["days_after"]>0)&(task_remsg["days_after"]<=7)]["patient_id"])
+df_to = df[df["hcw_group"]=="task_only"].copy()
+df_to["returned_7d"] = df_to["patient_id"].isin(returned_7d).astype(int)
+ret = df_to[df_to["returned_7d"]==1]; no_ret = df_to[df_to["returned_7d"]==0]
+print(f"  Returned to Aimee within 7d: {len(ret):,} ({len(ret)/len(df_to)*100:.1f}%)")
+print(f"  {'Group':<40} {'HIV%':>8} {'PrEP%':>8}")
+print(f"  {'Returned to Aimee within 7d':<40} {ret['hiv'].mean()*100:>8.1f} {ret['prep'].mean()*100:>8.1f}")
+print(f"  {'Did not return within 7d':<40} {no_ret['hiv'].mean()*100:>8.1f} {no_ret['prep'].mean()*100:>8.1f}")
+print(f"  {'Two-way nurse (reference)':<40} {df[df['hcw_group']=='two_way']['hiv'].mean()*100:>8.1f} {df[df['hcw_group']=='two_way']['prep'].mean()*100:>8.1f}")
+ 
+# ════════════════════════════════════════════════════════════════════════════
+# SUPPLEMENTARY ANALYSIS 3 — Nurse efficiency
+# ════════════════════════════════════════════════════════════════════════════
+print("\n--- Analysis 3: Nurse efficiency ---")
+base_hiv  = df[df["hcw_group"]=="none"]["hiv"].mean()
+base_prep = df[df["hcw_group"]=="none"]["prep"].mean()
+task_hiv_inc  = (task_df["hiv"].mean()  - base_hiv)  * len(task_df)
+task_prep_inc = (task_df["prep"].mean() - base_prep) * len(task_df)
+two_df = df[df["hcw_group"]=="two_way"]
+two_hiv_inc   = (two_df["hiv"].mean()  - base_hiv)  * len(two_df)
+two_prep_inc  = (two_df["prep"].mean() - base_prep) * len(two_df)
+print(f"  No-contact baseline: HIV {base_hiv*100:.1f}%, PrEP {base_prep*100:.1f}%")
+print(f"  Task-only:  +{task_hiv_inc:.0f} HIV tests ({task_hiv_inc/len(task_df):.2f}/outreach), +{task_prep_inc:.0f} PrEP ({task_prep_inc/len(task_df):.3f}/outreach)")
+print(f"  Two-way:    +{two_hiv_inc:.0f} HIV tests ({two_hiv_inc/len(two_df):.2f}/conversation), +{two_prep_inc:.0f} PrEP ({two_prep_inc/len(two_df):.3f}/conversation)")
+print(f"  Total incremental HIV tests: {task_hiv_inc+two_hiv_inc:.0f}")
+print(f"  Total incremental PrEP:      {task_prep_inc+two_prep_inc:.0f}")

@@ -1,0 +1,7 @@
+section,variable,HIV testing AOR,HIV testing p,PrEP uptake AOR,PrEP uptake p
+Individually adjusted,Distinct active days (per day),1.115 (1.062–1.171),<0·001,1.074 (1.045–1.105),<0·001
+Individually adjusted,Engagement span (per day),1.005 (1.002–1.008),0·002,1.006 (1.003–1.009),<0·001
+Individually adjusted,Total messages sent (per msg),1.013 (1.007–1.019),<0·001,1.005 (1.002–1.007),<0·001
+Individually adjusted,Number of AI conversations,1.075 (1.025–1.127),0·003,1.032 (1.009–1.055),0·006
+Mutually adjusted,Distinct active days (per day),1.104 (1.045–1.167),<0·001,1.060 (1.028–1.093),<0·001
+Mutually adjusted,Engagement span (per day),1.001 (0.998–1.005),0·469,1.003 (1.000–1.006),0·053

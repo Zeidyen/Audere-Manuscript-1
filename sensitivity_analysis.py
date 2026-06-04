@@ -248,14 +248,20 @@ print("Comparison: Main analysis (n=9,958) vs Sensitivity (n="+f"{len(complete):
 print("=" * 100)
 
 main_tbl = pd.read_csv(os.path.join(OUT_DIR, "supplementary_table_2.csv"))
+# supplementary_table_2.csv labels its sections "Individual"/"Mutually adjusted"
+# and suffixes its AOR columns with "_aor" — map the sensitivity rows onto those.
+SEC_MAP = {"Individually adjusted": "Individual", "Mutually adjusted": "Mutually adjusted"}
 print(f"\n{'Section':<10}{'Variable':<32}{'Main HIV AOR':>22}{'Sens HIV AOR':>22}{'Main PrEP AOR':>22}{'Sens PrEP AOR':>22}")
 print("-" * 130)
 for r in rows:
     sec = r["section"][:8]
     var = r["variable"]
-    main_row = main_tbl[(main_tbl["section"]==r["section"]) & (main_tbl["variable"]==var)].iloc[0]
-    print(f"{sec:<10}{var:<32}{main_row['HIV testing (primary) AOR']:>22}"
-          f"{r['HIV testing AOR']:>22}{main_row['PrEP uptake AOR']:>22}{r['PrEP uptake AOR']:>22}")
+    match = main_tbl[(main_tbl["section"] == SEC_MAP.get(r["section"], r["section"])) & (main_tbl["variable"] == var)]
+    if match.empty:
+        continue
+    main_row = match.iloc[0]
+    print(f"{sec:<10}{var:<32}{main_row['HIV testing (primary)_aor']:>22}"
+          f"{r['HIV testing AOR']:>22}{main_row['PrEP uptake_aor']:>22}{r['PrEP uptake AOR']:>22}")
 
 # Also report the demographic effects themselves (informational)
 print("\n" + "=" * 100)

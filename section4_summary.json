@@ -1,0 +1,108 @@
+{
+  "N": 9310,
+  "two_way": 2456,
+  "task_only": 2006,
+  "no_contact": 4848,
+  "two_way_hiv_pct": 65.67589576547232,
+  "two_way_prep_pct": 23.615635179153095,
+  "no_contact_hiv_pct": 17.698019801980198,
+  "no_contact_prep_pct": 7.013201320132014,
+  "task_only_hiv_pct": 40.32901296111665,
+  "task_only_prep_pct": 10.967098703888336,
+  "HIV_AOR": [
+    9.329842965023412,
+    8.31803087006213,
+    10.464732712797284,
+    0.0
+  ],
+  "PrEP_AOR": [
+    4.114982786120137,
+    3.547563772161646,
+    4.773158262281829,
+    6.335397369910797e-78
+  ],
+  "flags_6a": [
+    {
+      "flag": "Elevated Phithos risk score",
+      "n": 218,
+      "nurse_pct": 81.65137614678899,
+      "hiv_pct": 88.9908256880734,
+      "prep_pct": 24.770642201834864
+    },
+    {
+      "flag": "Possible positive HIV test",
+      "n": 94,
+      "nurse_pct": 74.46808510638297,
+      "hiv_pct": 82.97872340425532,
+      "prep_pct": 12.76595744680851
+    },
+    {
+      "flag": "Interest in HIV self-testing",
+      "n": 820,
+      "nurse_pct": 74.02439024390245,
+      "hiv_pct": 61.829268292682926,
+      "prep_pct": 14.75609756097561
+    },
+    {
+      "flag": "Interest in PrEP or PEP",
+      "n": 626,
+      "nurse_pct": 72.52396166134186,
+      "hiv_pct": 77.95527156549521,
+      "prep_pct": 34.98402555910543
+    },
+    {
+      "flag": "Concerning conversation content",
+      "n": 383,
+      "nurse_pct": 68.66840731070496,
+      "hiv_pct": 62.14099216710183,
+      "prep_pct": 18.27676240208877
+    },
+    {
+      "flag": "Routine nurse follow-up",
+      "n": 3080,
+      "nurse_pct": 59.480519480519476,
+      "hiv_pct": 58.66883116883117,
+      "prep_pct": 21.16883116883117
+    },
+    {
+      "flag": "Negative HIV test disclosed",
+      "n": 1690,
+      "nurse_pct": 57.15976331360947,
+      "hiv_pct": 81.06508875739645,
+      "prep_pct": 26.982248520710062
+    },
+    {
+      "flag": "Patient-initiated nurse request",
+      "n": 2432,
+      "nurse_pct": 56.661184210526315,
+      "hiv_pct": 47.77960526315789,
+      "prep_pct": 19.983552631578945
+    }
+  ],
+  "overall_rows": [
+    {
+      "group": "Two-way nurse conversation",
+      "n": 2456,
+      "hiv_n": 1613,
+      "hiv_pct": 65.67589576547232,
+      "prep_n": 580,
+      "prep_pct": 23.615635179153095
+    },
+    {
+      "group": "HCW task generated, no patient response",
+      "n": 2006,
+      "hiv_n": 809,
+      "hiv_pct": 40.32901296111665,
+      "prep_n": 220,
+      "prep_pct": 10.967098703888336
+    },
+    {
+      "group": "No healthcare worker contact",
+      "n": 4848,
+      "hiv_n": 858,
+      "hiv_pct": 17.698019801980198,
+      "prep_n": 340,
+      "prep_pct": 7.013201320132014
+    }
+  ]
+}
