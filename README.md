@@ -74,36 +74,6 @@ All outcomes are anchored at the analytic cohort (n=9,310). Same-day events — 
 
 ## Key outcome definitions
 
-### Primary HIV testing outcome
-Union of five sources. The verified sources (S1–S2) are restricted to events on a strictly later day than first Aimee message; the self-disclosed sources (S3–S5) are presence-based:
-
-| Source | Type | Verification |
-|---|---|---|
-| S1: CBO clinic HIV test result | Post-Aimee only | Strong — clinic-verified |
-| S2: Nurse-reviewed self-test upload | All (incl. same-day Wondfo) |
-| S3: HIV status disclosed to Aimee | Post-disclosure timestamp |
-| S4: HIV test date disclosed to Aimee | Post-disclosure timestamp |
-| S5: Care-linkage HIV-testing date disclosed to Aimee | Post-disclosure timestamp |
-
-Primary union: **3,493 (37·5%)**  
-Conservative secondary (S1+S2 only): **1,714 (18·4%)**
-
-> **Note on S3/S4:** The disclosure timestamp records when the patient *told Aimee*, not when the test occurred. The underlying test event may pre-date platform engagement. For Phithos risk subgroup analyses, CBO-verified outcomes are used instead of the union to avoid ceiling effects.
-
-> **Wondfo acknowledgement:** HIV self-tests for S2 were donated by Wondfo Biotech Co., Ltd as part of community outreach recruitment events.
-
-### Primary PrEP uptake outcome
-Union of two sources, same-day excluded:
-
-| Source | Type | Verification |
-|---|---|---|
-| PrEP S1: CBO dispensing record | Post-Aimee only | Strong |
-| PrEP S2: Self-disclosed PrEP use | Post-disclosure | Weak |
-
-Primary union: **1,124 (12·1%)**  
-Conservative secondary (CBO-verified only): **810 (8·7%)**
-
----
 
 ## Engagement variables
 
